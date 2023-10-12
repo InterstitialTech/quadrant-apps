@@ -8,6 +8,7 @@ import pyqtgraph as pg
 import serial
 import struct
 import numpy as np
+import json
 
 
 FILENAME_SERIAL = '/dev/ttyACM0'
@@ -76,17 +77,19 @@ class MainWidget(qtw.QWidget):
 
     def refresh(self):
         while self.quadrant.in_waiting:
-            data_raw = self.quadrant.readline();
-            data_split = data_raw.split()
-            if len(data_split) == 4:
-                data = tuple(map(int, data_split))
-                datanew = np.array(data, dtype=np.int32).reshape(4,1)
-                self.databuf = np.concatenate((self.databuf[:,1:], datanew), axis=1)
-                for i in range(4):
-                    self.streams[i].clear()
-                    self.streams[i].plot(self.databuf[i,:])
-            else:
-                print('wtf!')
+            report_raw = self.quadrant.readline();
+            try:
+                report = json.loads(report_raw)
+            except json.decoder.JSONDecodeError:
+                print('dropped some data')
+                continue
+            distance = [report[s]['distance'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
+            engaged = [report[s]['engaged'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
+            datanew = np.array(distance, dtype=np.int32).reshape(4,1)
+            self.databuf = np.concatenate((self.databuf[:,1:], datanew), axis=1)
+            for i in range(4):
+                self.streams[i].clear()
+                self.streams[i].plot(self.databuf[i,:])
 
 
 if __name__ == '__main__':
