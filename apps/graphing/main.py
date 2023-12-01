@@ -9,9 +9,13 @@ import serial
 import struct
 import numpy as np
 import json
+import sys
 
 
-FILENAME_SERIAL = '/dev/ttyACM0'
+if len(sys.argv) <= 1:
+    FILENAME_SERIAL = '/dev/ttyACM0'
+else:
+    FILENAME_SERIAL = sys.argv[1]
 
 
 class MainWindow(qtw.QMainWindow):
@@ -23,8 +27,35 @@ class MainWindow(qtw.QMainWindow):
         self.setCentralWidget(self.widget)
 
     def keyPressEvent(self, e):
-        if e.key() == qtc.Qt.Key_Space:
-            self.widget.start_stop()
+        self.widget.keyPressEvent(e)
+
+
+class GraphingWidget(qtw.QWidget):
+
+    def __init__(self):
+        qtw.QWidget.__init__(self)
+
+        self.pgwidget = pg.GraphicsLayoutWidget()
+
+        self.plots = []
+        self.plots.append(self.pgwidget.addPlot(row=0, col=0))
+        self.plots.append(self.pgwidget.addPlot(row=1, col=0))
+        self.plots.append(self.pgwidget.addPlot(row=2, col=0))
+        self.plots.append(self.pgwidget.addPlot(row=3, col=0))
+        for plot in self.plots:
+            plot.setYRange(0, 400)
+
+        self.layout = qtw.QVBoxLayout()
+        self.layout.addWidget(self.pgwidget)
+
+        self.setLayout(self.layout)
+
+    def update_data(self, data):
+        #data is of type np.zeros((4,512), dtype=np.int32)
+        for i in range(4):
+            self.plots[i].clear()
+            self.plots[i].plot(data[i,:])
+
 
 class MainWidget(qtw.QWidget):
 
@@ -34,21 +65,14 @@ class MainWidget(qtw.QWidget):
         self.l1 = qtw.QLabel('Streams')
         self.l1.setAlignment(qtc.Qt.AlignCenter)
 
-        self.stream_widget = pg.GraphicsLayoutWidget()
-        self.streams = []
-        self.streams.append(self.stream_widget.addPlot(row=0, col=0))
-        self.streams.append(self.stream_widget.addPlot(row=1, col=0))
-        self.streams.append(self.stream_widget.addPlot(row=2, col=0))
-        self.streams.append(self.stream_widget.addPlot(row=3, col=0))
-        for stream in self.streams:
-            stream.setYRange(0, 400)
+        self.graphing_widget = GraphingWidget()
 
         self.start_stop_button = qtw.QPushButton('Start')
         self.start_stop_button.clicked.connect(self.start_stop)
 
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.l1)
-        self.layout.addWidget(self.stream_widget)
+        self.layout.addWidget(self.graphing_widget)
         self.layout.addWidget(self.start_stop_button)
 
         self.setLayout(self.layout)
@@ -87,9 +111,13 @@ class MainWidget(qtw.QWidget):
             engaged = [report[s]['engaged'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
             datanew = np.array(distance, dtype=np.int32).reshape(4,1)
             self.databuf = np.concatenate((self.databuf[:,1:], datanew), axis=1)
-            for i in range(4):
-                self.streams[i].clear()
-                self.streams[i].plot(self.databuf[i,:])
+            self.graphing_widget.update_data(self.databuf)
+
+    def keyPressEvent(self, e):
+        if e.key() == qtc.Qt.Key_Space:
+            self.start_stop()
+        elif e.key() == qtc.Qt.Key_Home:
+            print('no place like')
 
 
 if __name__ == '__main__':
