@@ -59,6 +59,16 @@ class GraphingWidget(qtw.QFrame):
         self.plots.append(self.pgwidget.addPlot(row=1, col=0))
         self.plots.append(self.pgwidget.addPlot(row=2, col=0))
         self.plots.append(self.pgwidget.addPlot(row=3, col=0))
+
+
+        self.labels= []
+        for i in range(4):
+            label = pg.LabelItem(f"<b>Channel {i}</b>", size="10pt") 
+            label.setParentItem(self.plots[i].getViewBox())
+            label.anchor(itemPos=(0.5,0.), parentPos=(0.5,0.01))
+            label.html = True
+            self.labels.append(label)
+
         self.reset_zoom()
 
         self.link_axes()
@@ -99,6 +109,10 @@ class GraphingWidget(qtw.QFrame):
         for i in range(4):
             self.plots[i].clear()
             self.plots[i].plot(data[i,:])
+            cur = data[i,-1]
+            mean = np.mean(data[i,-50:])
+            std = np.std(data[i,-50:])
+            self.labels[i].setText(f"<b>Channel {i} = {cur}</b> (mean={mean:.1f}, std={std:.1f})")
 
     def eventFilter(self, target, e):
         if (target is self.pgwidget):
