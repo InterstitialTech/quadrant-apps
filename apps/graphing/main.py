@@ -109,6 +109,54 @@ class GraphingWidget(qtw.QFrame):
         return False
 
 
+class GaugeWidget(qtw.QFrame):
+
+    def __init__(self, orientation='vertical', polarity='unipolar'):
+        super().__init__()
+        self.setFrameStyle(qtw.QFrame.Box | qtw.QFrame.Plain)
+        self.setLineWidth(2)
+        self.orientation = orientation
+        self.polarity = polarity
+        self.setMinimumWidth(50)
+        self.setMinimumHeight(50)
+        self.value = None
+
+    def set_value(self, value):
+        # float from [-1,1] (or [0,1] for unipolar) or None
+        self.value = value
+        self.update()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = qtg.QPainter(self)
+        painter.setPen(qtg.QPen(qtc.Qt.gray,  1, qtc.Qt.DashLine))
+        self.draw_center_line(painter)
+        if self.value is not None:
+            painter.setPen(qtg.QPen(qtc.Qt.red,  2, qtc.Qt.SolidLine))
+            self.draw_data_line(painter)
+        
+    def draw_center_line(self, painter):
+        if self.polarity == 'bipolar':
+            if self.orientation == 'vertical':
+                painter.drawLine(0, self.height()//2, self.width(), self.height()//2)
+            elif self.orientation == 'horizontal':
+                painter.drawLine(self.width()//2, 0, self.width()//2, self.height())
+
+    def draw_data_line(self, painter):
+        if self.orientation == 'vertical':
+            if self.polarity == 'unipolar':
+                pos = int(self.height() * (1. - self.value))
+            elif self.polarity == 'bipolar':
+                pos = int(self.height()/2 * (1. - self.value))
+            painter.drawLine(0, pos, self.width(), pos)
+        elif self.orientation == 'horizontal':
+            if self.polarity == 'unipolar':
+                pos = int(self.width() * (1. - self.value))
+            elif self.polarity == 'bipolar':
+                pos = int(self.width()/2 * (1. - self.value))
+            painter.drawLine(pos, 0, pos, self.height())
+
+
 class ElevationWidget(qtw.QFrame):
 
     def __init__(self):
@@ -116,8 +164,10 @@ class ElevationWidget(qtw.QFrame):
         self.setFrameStyle(qtw.QFrame.Box | qtw.QFrame.Plain)
         self.setLineWidth(2)
         self.label = CBLabel('[elevation]')
+        self.gauge = GaugeWidget(orientation='vertical', polarity='unipolar')
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.label)
+        self.layout.addWidget(self.gauge)
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
@@ -125,8 +175,10 @@ class ElevationWidget(qtw.QFrame):
         engaged = report_dict['engaged']
         if engaged:
             self.label.setText('Elevation:\n%1.3f' % value)
+            self.gauge.set_value(value)
         else:
             self.label.setText('[elevation]')
+            self.gauge.set_value(None)
 
 
 class PitchWidget(qtw.QFrame):
@@ -136,8 +188,10 @@ class PitchWidget(qtw.QFrame):
         self.setFrameStyle(qtw.QFrame.Box | qtw.QFrame.Plain)
         self.setLineWidth(2)
         self.label = CBLabel('[pitch]')
+        self.gauge = GaugeWidget(orientation='vertical', polarity='bipolar')
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.label)
+        self.layout.addWidget(self.gauge)
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
@@ -145,8 +199,10 @@ class PitchWidget(qtw.QFrame):
         engaged = report_dict['engaged']
         if engaged:
             self.label.setText('Pitch:\n%1.3f' % value)
+            self.gauge.set_value(value)
         else:
             self.label.setText('[pitch]')
+            self.gauge.set_value(None)
 
 
 class RollWidget(qtw.QFrame):
@@ -156,8 +212,10 @@ class RollWidget(qtw.QFrame):
         self.setFrameStyle(qtw.QFrame.Box | qtw.QFrame.Plain)
         self.setLineWidth(2)
         self.label = CBLabel('[roll]')
+        self.gauge = GaugeWidget(orientation='horizontal', polarity='bipolar')
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.label)
+        self.layout.addWidget(self.gauge)
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
@@ -165,8 +223,10 @@ class RollWidget(qtw.QFrame):
         engaged = report_dict['engaged']
         if engaged:
             self.label.setText('Roll:\n%1.3f' % value)
+            self.gauge.set_value(value)
         else:
             self.label.setText('[roll]')
+            self.gauge.set_value(None)
 
 
 class ArcWidget(qtw.QFrame):
@@ -176,8 +236,10 @@ class ArcWidget(qtw.QFrame):
         self.setFrameStyle(qtw.QFrame.Box | qtw.QFrame.Plain)
         self.setLineWidth(2)
         self.label = CBLabel('[arc]')
+        self.gauge = GaugeWidget(orientation='vertical', polarity='bipolar')
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.label)
+        self.layout.addWidget(self.gauge)
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
@@ -185,8 +247,10 @@ class ArcWidget(qtw.QFrame):
         engaged = report_dict['engaged']
         if engaged:
             self.label.setText('Arc:\n%1.3f' % value)
+            self.gauge.set_value(value)
         else:
             self.label.setText('[arc]')
+            self.gauge.set_value(None)
 
 
 class SampleRateWidget(qtw.QFrame):
