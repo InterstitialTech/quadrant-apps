@@ -153,7 +153,7 @@ class GaugeWidget(qtw.QFrame):
             if self.polarity == 'unipolar':
                 pos = int(self.width() * (1. - self.value))
             elif self.polarity == 'bipolar':
-                pos = int(self.width()/2 * (1. - self.value))
+                pos = int(self.width()/2 * (1. + self.value))
             painter.drawLine(pos, 0, pos, self.height())
 
 
