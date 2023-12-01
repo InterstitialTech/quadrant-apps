@@ -36,25 +36,43 @@ class GraphingWidget(qtw.QWidget):
         qtw.QWidget.__init__(self)
 
         self.pgwidget = pg.GraphicsLayoutWidget()
+        self.pgwidget.installEventFilter(self)
 
         self.plots = []
         self.plots.append(self.pgwidget.addPlot(row=0, col=0))
         self.plots.append(self.pgwidget.addPlot(row=1, col=0))
         self.plots.append(self.pgwidget.addPlot(row=2, col=0))
         self.plots.append(self.pgwidget.addPlot(row=3, col=0))
-        for plot in self.plots:
-            plot.setYRange(0, 400)
+        self.reset_zoom()
+
+        for i in range(4):
+            if i != 0:
+                self.plots[i].setXLink(self.plots[0])
+                self.plots[i].setYLink(self.plots[0])
 
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.pgwidget)
 
         self.setLayout(self.layout)
 
+    def reset_zoom(self):
+        for plot in self.plots:
+            plot.setXRange(0, 512)
+            plot.setYRange(0, 400)
+
     def update_data(self, data):
         #data is of type np.zeros((4,512), dtype=np.int32)
         for i in range(4):
             self.plots[i].clear()
             self.plots[i].plot(data[i,:])
+
+    def eventFilter(self, target, e):
+        if (target is self.pgwidget):
+            if (e.type() == e.MouseButtonPress):
+                if e.button() == qtc.Qt.MouseButton.MiddleButton:
+                    self.reset_zoom()
+                    return True
+        return False
 
 
 class MainWidget(qtw.QWidget):
