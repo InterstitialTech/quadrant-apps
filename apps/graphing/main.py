@@ -45,15 +45,33 @@ class GraphingWidget(qtw.QWidget):
         self.plots.append(self.pgwidget.addPlot(row=3, col=0))
         self.reset_zoom()
 
-        for i in range(4):
-            if i != 0:
-                self.plots[i].setXLink(self.plots[0])
-                self.plots[i].setYLink(self.plots[0])
+        self.link_axes()
+        self.axes_linked = True
 
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.pgwidget)
 
         self.setLayout(self.layout)
+
+    def link_axes(self):
+        for i in range(4):
+            if i != 0:
+                self.plots[i].setXLink(self.plots[0])
+                self.plots[i].setYLink(self.plots[0])
+
+    def unlink_axes(self):
+        for plot in self.plots:
+            vb = plot.getViewBox()
+            vb.linkView(vb.XAxis, None)
+            vb.linkView(vb.YAxis, None)
+
+    def toggle_axes_linked(self):
+        if self.axes_linked:
+            self.unlink_axes()
+            self.axes_linked = False
+        else:
+            self.link_axes()
+            self.axes_linked = True
 
     def reset_zoom(self):
         for plot in self.plots:
@@ -134,8 +152,8 @@ class MainWidget(qtw.QWidget):
     def keyPressEvent(self, e):
         if e.key() == qtc.Qt.Key_Space:
             self.start_stop()
-        elif e.key() == qtc.Qt.Key_Home:
-            print('no place like')
+        elif e.key() == qtc.Qt.Key_Escape:
+            self.graphing_widget.toggle_axes_linked()
 
 
 if __name__ == '__main__':
