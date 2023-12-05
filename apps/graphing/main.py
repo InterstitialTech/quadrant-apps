@@ -6,7 +6,6 @@ import PyQt5.QtCore as qtc
 
 import pyqtgraph as pg
 import serial
-import struct
 import numpy as np
 import json
 import sys
