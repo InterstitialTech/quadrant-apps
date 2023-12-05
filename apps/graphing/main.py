@@ -105,14 +105,14 @@ class GraphingWidget(qtw.QFrame):
             plot.setYRange(0, 400)
 
     def update_data(self, data):
-        #data is of type np.zeros((4,512), dtype=np.int32)
+        #data is of type np.zeros((4,512), dtype=np.float32)
         for i in range(4):
             self.plots[i].clear()
             self.plots[i].plot(data[i,:])
             cur = data[i,-1]
             mean = np.mean(data[i,-50:])
             std = np.std(data[i,-50:])
-            self.labels[i].setText(f"<b>Channel {i} = {cur}</b> (mean={mean:.1f}, std={std:.1f})")
+            self.labels[i].setText(f"<b>Channel {i} = {cur:.1f}</b> (mean={mean:.1f}, std={std:.1f})")
 
     def eventFilter(self, target, e):
         if (target is self.pgwidget):
@@ -320,7 +320,7 @@ class MainWidget(qtw.QWidget):
         self.refresh_timer.timeout.connect(self.refresh)
 
         self.quadrant = serial.Serial(FILENAME_SERIAL, 115200, timeout=0.025)
-        self.databuf = np.zeros((4,512), dtype=np.int32)
+        self.databuf = np.zeros((4,512), dtype=np.float32)
 
     def start_stop(self):
         if self.running:
@@ -343,7 +343,7 @@ class MainWidget(qtw.QWidget):
             # graphing distance
             distance = [report[s]['distance'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
             lidar_engaged = [report[s]['engaged'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
-            datanew = np.array(distance, dtype=np.int32).reshape(4,1)
+            datanew = np.array(distance, dtype=np.float32).reshape(4,1)
             self.databuf = np.concatenate((self.databuf[:,1:], datanew), axis=1)
             self.graphing_widget.update_data(self.databuf)
             # elevation
