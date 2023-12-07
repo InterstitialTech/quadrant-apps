@@ -327,7 +327,7 @@ class MainWidget(qtw.QWidget):
             self.running = False
             self.start_stop_button.setText('Start')
         else:
-            self.refresh_timer.start(50)
+            self.refresh_timer.start(15)
             self.running = True
             self.start_stop_button.setText('Stop')
 
