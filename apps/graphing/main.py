@@ -184,8 +184,8 @@ class ElevationWidget(qtw.QFrame):
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
-        value = report_dict['value']
-        engaged = report_dict['engaged']
+        value = report_dict['val']
+        engaged = report_dict['en']
         if engaged:
             self.label.setText('Elevation:\n%1.3f' % value)
             self.gauge.set_value(value)
@@ -208,8 +208,8 @@ class PitchWidget(qtw.QFrame):
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
-        value = report_dict['value']
-        engaged = report_dict['engaged']
+        value = report_dict['val']
+        engaged = report_dict['en']
         if engaged:
             self.label.setText('Pitch:\n%1.3f' % value)
             self.gauge.set_value(value)
@@ -232,8 +232,8 @@ class RollWidget(qtw.QFrame):
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
-        value = report_dict['value']
-        engaged = report_dict['engaged']
+        value = report_dict['val']
+        engaged = report_dict['en']
         if engaged:
             self.label.setText('Roll:\n%1.3f' % value)
             self.gauge.set_value(value)
@@ -256,8 +256,8 @@ class ArcWidget(qtw.QFrame):
         self.setLayout(self.layout)
 
     def update_report(self, report_dict):
-        value = report_dict['value']
-        engaged = report_dict['engaged']
+        value = report_dict['val']
+        engaged = report_dict['en']
         if engaged:
             self.label.setText('Arc:\n%1.3f' % value)
             self.gauge.set_value(value)
@@ -276,9 +276,14 @@ class SampleRateWidget(qtw.QFrame):
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.label)
         self.setLayout(self.layout)
+        self.tlast = None
+        self.tnow = None
 
-    def update_value(self, value):
-        self.label.setText('Sample Rate:\n%1.3f' % value)
+    def update_value(self, timestamp_us):
+        self.tlast = self.tnow
+        self.tnow = timestamp_us
+        if all(t is not None for t in [self.tlast, self.tnow]):
+            self.label.setText('Sample Rate:\n%1.3f' % (1e6/(self.tnow - self.tlast)))
 
 
 class MainWidget(qtw.QWidget):
@@ -340,8 +345,8 @@ class MainWidget(qtw.QWidget):
                 print('dropped some data')
                 continue
             # graphing distance
-            distance = [report[s]['distance'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
-            lidar_engaged = [report[s]['engaged'] for s in ('lidar0', 'lidar1', 'lidar2', 'lidar3')]
+            distance = [report[s]['dist'] for s in ('l0', 'l1', 'l2', 'l3')]
+            lidar_engaged = [report[s]['en'] for s in ('l0', 'l1', 'l2', 'l3')]
             datanew = np.array(distance, dtype=np.float32).reshape(4,1)
             self.databuf = np.concatenate((self.databuf[:,1:], datanew), axis=1)
             self.graphing_widget.update_data(self.databuf)
@@ -354,7 +359,7 @@ class MainWidget(qtw.QWidget):
             # arc
             self.arc_widget.update_report(report['arc'])
             # sample rate
-            self.sample_rate_widget.update_value(report['sampleRate'])
+            self.sample_rate_widget.update_value(report['ts'])
 
     def keyPressEvent(self, e):
         if e.key() == qtc.Qt.Key_Space:
