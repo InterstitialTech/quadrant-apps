@@ -279,7 +279,7 @@ class SampleRateWidget(qtw.QFrame):
         self.tlast = None
         self.tnow = None
 
-    def update_value(self, timestamp_us):
+    def update_report(self, timestamp_us):
         self.tlast = self.tnow
         self.tnow = timestamp_us
         if all(t is not None for t in [self.tlast, self.tnow]):
@@ -325,6 +325,7 @@ class MainWidget(qtw.QWidget):
 
         self.quadrant = serial.Serial(FILENAME_SERIAL, 115200, timeout=0.025)
         self.databuf = np.zeros((4,512), dtype=np.float32)
+        self.datanew = np.zeros(4, dtype=np.float32).reshape(4,1)
 
     def start_stop(self):
         if self.running:
@@ -345,21 +346,21 @@ class MainWidget(qtw.QWidget):
                 print('dropped some data')
                 continue
             # graphing distance
-            distance = [report[s]['dist'] for s in ('l0', 'l1', 'l2', 'l3')]
-            lidar_engaged = [report[s]['en'] for s in ('l0', 'l1', 'l2', 'l3')]
-            datanew = np.array(distance, dtype=np.float32).reshape(4,1)
-            self.databuf = np.concatenate((self.databuf[:,1:], datanew), axis=1)
+            for i,s in enumerate(['l0', 'l1', 'l2', 'l3']):
+                try:
+                    self.datanew[i,0] = report[s]['dist']
+                except KeyError:
+                    self.datanew[i,0] = 8190
+            self.databuf = np.concatenate((self.databuf[:,1:], self.datanew), axis=1)
             self.graphing_widget.update_data(self.databuf)
-            # elevation
-            self.elevation_widget.update_report(report['elevation'])
-            # pitch
-            self.pitch_widget.update_report(report['pitch'])
-            # roll
-            self.roll_widget.update_report(report['roll'])
-            # arc
-            self.arc_widget.update_report(report['arc'])
-            # sample rate
-            self.sample_rate_widget.update_value(report['ts'])
+            # parameter widgets
+            for s,w in zip(('elevation', 'pitch', 'roll', 'arc', 'ts'),
+                            (self.elevation_widget, self.pitch_widget, self.roll_widget,
+                                self.arc_widget, self.sample_rate_widget)):
+                try:
+                    w.update_report(report[s])
+                except KeyError:
+                    pass
 
     def keyPressEvent(self, e):
         if e.key() == qtc.Qt.Key_Space:
