@@ -24,7 +24,7 @@ class MainWindow(qtw.QMainWindow):
         self.widget = MainWidget()
         self.setCentralWidget(self.widget)
 
-        self.setWindowTitle('Quadrant Data Visualizer (%s)' % FILENAME_SERIAL)
+        self.setWindowTitle('JitterScope (Quadrant: %s)' % FILENAME_SERIAL)
         self.setMinimumWidth(800)
         self.setMinimumHeight(300)
 
@@ -145,18 +145,4 @@ if __name__ == '__main__':
     win = MainWindow()
     win.show()
     app.exec()
-
-
-
-"""
-data = np.loadtxt(sys.argv[1])
-#time = data[:,-1]
-time = data
-n = len(time)
-dt = np.zeros(n-1, dtype=np.float32)
-for i in range(1,n):
-    dt[i-1] = time[i] - time[i-1]
-print('Average dt = ', np.mean(dt))
-print('Standard Dev = ', np.std(dt))
-"""
 
