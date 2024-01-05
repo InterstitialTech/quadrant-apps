@@ -9,6 +9,7 @@ import serial
 import numpy as np
 import json
 import sys
+import time
 
 
 if len(sys.argv) <= 1:
@@ -276,14 +277,14 @@ class SampleRateWidget(qtw.QFrame):
         self.layout = qtw.QVBoxLayout()
         self.layout.addWidget(self.label)
         self.setLayout(self.layout)
-        self.tlast = None
-        self.tnow = None
+        self.tlast = 0
+        self.tnow = 0
 
     def update_report(self, timestamp_us):
         self.tlast = self.tnow
         self.tnow = timestamp_us
         if all(t is not None for t in [self.tlast, self.tnow]):
-            self.label.setText('Sample Rate:\n%1.3f' % (1e6/(self.tnow - self.tlast)))
+            self.label.setText('Sample Rate:\n%.1f Hz' % (1e6/(self.tnow - self.tlast)))
 
 
 class MainWidget(qtw.QWidget):
@@ -327,6 +328,9 @@ class MainWidget(qtw.QWidget):
         self.databuf = np.zeros((4,512), dtype=np.float32)
         self.datanew = np.zeros(4, dtype=np.float32).reshape(4,1)
 
+        self.tnow = 0
+        self.tlast = 0
+
     def start_stop(self):
         if self.running:
             self.refresh_timer.stop()
@@ -343,24 +347,31 @@ class MainWidget(qtw.QWidget):
             try:
                 report = json.loads(report_raw)
             except json.decoder.JSONDecodeError:
-                print('dropped some data')
+                print('failed to parse')
                 continue
-            # graphing distance
-            for i,s in enumerate(['l0', 'l1', 'l2', 'l3']):
-                try:
-                    self.datanew[i,0] = report[s]['dist']
-                except KeyError:
-                    self.datanew[i,0] = 8190
-            self.databuf = np.concatenate((self.databuf[:,1:], self.datanew), axis=1)
-            self.graphing_widget.update_data(self.databuf)
-            # parameter widgets
-            for s,w in zip(('elevation', 'pitch', 'roll', 'arc', 'ts'),
-                            (self.elevation_widget, self.pitch_widget, self.roll_widget,
-                                self.arc_widget, self.sample_rate_widget)):
-                try:
-                    w.update_report(report[s])
-                except KeyError:
-                    pass
+            # throttle
+            self.tnow = report['ts']
+            self.sample_rate_widget.update_report(self.tnow)
+            if self.tnow - self.tlast > 30000:
+                # graphing distance
+                for i,s in enumerate(['l0', 'l1', 'l2', 'l3']):
+                    try:
+                        self.datanew[i,0] = report[s]['dist']
+                    except KeyError:
+                        print('keyerror: dist')
+                        self.datanew[i,0] = 8190
+                self.databuf = np.concatenate((self.databuf[:,1:], self.datanew), axis=1)
+                self.graphing_widget.update_data(self.databuf)
+                # parameter widgets
+                for s,w in zip(('elevation', 'pitch', 'roll', 'arc'),
+                                (self.elevation_widget, self.pitch_widget, self.roll_widget,
+                                    self.arc_widget)):
+                    try:
+                        w.update_report(report[s])
+                    except KeyError:
+                        print('keyerror: report')
+                        pass
+                self.tlast = self.tnow
 
     def keyPressEvent(self, e):
         if e.key() == qtc.Qt.Key_Space:
